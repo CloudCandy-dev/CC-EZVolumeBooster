@@ -1,0 +1,31 @@
+.app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content {
+    flex: 1;
+    padding: var(--space-xl) 0;
+}
+
+.main-content .card {
+    margin-bottom: var(--space-lg);
+}
+
+.audio-preview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
+
+@media (max-width: 768px) {
+    .audio-preview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .main-content {
+        padding: var(--space-md) 0;
+    }
+}

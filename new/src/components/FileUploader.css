@@ -1,0 +1,16 @@
+.upload-area.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.upload-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-md);
+}
+
+.upload-icon .loading-spinner {
+    width: 48px;
+    height: 48px;
+}

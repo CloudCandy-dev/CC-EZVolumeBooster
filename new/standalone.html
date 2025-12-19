@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="音声ファイルの音量を簡単に増幅するWebアプリ - EZVolumeBooster">
+    <title>EZVolumeBooster - 音量ブースター</title>
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%2300b4d8'/%3E%3Cstop offset='100%25' style='stop-color:%230096c7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='45' fill='url(%23grad)'/%3E%3Cpath d='M35 40 L35 60 L50 60 L65 75 L65 25 L50 40 Z' fill='white'/%3E%3Cpath d='M72 35 Q85 50 72 65' stroke='white' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3Cpath d='M78 28 Q95 50 78 72' stroke='white' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+    <!-- lamejs for MP3 encoding -->
+    <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+    <style>
+        /* ========================================
+           EZVolumeBooster - Global Styles
+           ラムネソーダ・空・海をイメージした水色基調のデザイン
+           ======================================== */
+
+        /* === CSS Variables === */
+        :root {
+            /* Light Mode Colors */
+            --color-primary: #00b4d8;
+            --color-primary-hover: #0096c7;
+            --color-secondary: #48cae4;
+            --color-accent: #0096c7;
+
+            --bg-main: #e0f7fa;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f0fbfc;
+            --bg-input: #ffffff;
+
+            --text-primary: #023047;
+            --text-secondary: #5a7184;
+            --text-muted: #8ea8b8;
+
+            --border-color: #b2ebf2;
+            --border-color-hover: #00b4d8;
+
+            --shadow-sm: 0 2px 8px rgba(0, 180, 216, 0.1);
+            --shadow-md: 0 4px 16px rgba(0, 180, 216, 0.15);
+            --shadow-lg: 0 8px 32px rgba(0, 180, 216, 0.2);
+
+            --gradient-primary: linear-gradient(135deg, #00b4d8 0%, #0096c7 100%);
+            --gradient-accent: linear-gradient(135deg, #48cae4 0%, #00b4d8 100%);
+            --gradient-bg: linear-gradient(180deg, #e0f7fa 0%, #b2ebf2 100%);
+
+            /* Transitions */
+            --transition-fast: 0.15s ease;
+            --transition-base: 0.25s ease;
+            --transition-slow: 0.4s ease;
+
+            /* Border Radius */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --space-2xl: 48px;
+        }
+
+        /* Dark Mode Colors */
+        [data-theme="dark"] {
+            --color-primary: #00d4ff;
+            --color-primary-hover: #00b4d8;
+            --color-secondary: #0077b6;
+            --color-accent: #00b4d8;
+
+            --bg-main: #0a1628;
+            --bg-card: #1a2a3d;
+            --bg-card-hover: #243447;
+            --bg-input: #1a2a3d;
+
+            --text-primary: #e8f4f8;
+            --text-secondary: #8ea8b8;
+            --text-muted: #5a7184;
+
+            --border-color: #2a3a4d;
+            --border-color-hover: #00d4ff;
+
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+            --gradient-primary: linear-gradient(135deg, #00d4ff 0%, #0077b6 100%);
+            --gradient-accent: linear-gradient(135deg, #00b4d8 0%, #0077b6 100%);
+            --gradient-bg: linear-gradient(180deg, #0a1628 0%, #1a2a3d 100%);
+        }
+
+        /* === Reset & Base Styles === */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+            background: var(--gradient-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            transition: background var(--transition-base), color var(--transition-base);
+        }
+
+        .app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* === Header === */
+        .header {
+            background: var(--bg-card);
+            border-bottom: 2px solid var(--border-color);
+            padding: var(--space-md) 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 var(--space-md);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .header-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border-radius: 50%;
+            background: var(--bg-card-hover);
+            border: 2px solid var(--border-color);
+            color: var(--color-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-base);
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--color-primary);
+            background: var(--color-primary);
+            color: white;
+        }
+
+        /* === Main Content === */
+        .main-content {
+            flex: 1;
+            padding: var(--space-xl) 0;
+        }
+
+        /* === Cards === */
+        .card {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            box-shadow: var(--shadow-sm);
+            transition: all var(--transition-base);
+            margin-bottom: var(--space-lg);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--border-color-hover);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-md);
+            padding-bottom: var(--space-md);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .card-badge {
+            background: var(--gradient-primary);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-sm);
+            margin-left: auto;
+        }
+
+        /* === Upload Area === */
+        .upload-area {
+            border: 3px dashed var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-2xl);
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            background: var(--bg-card);
+        }
+
+        .upload-area:hover,
+        .upload-area.drag-over {
+            border-color: var(--color-primary);
+            background: var(--bg-card-hover);
+        }
+
+        .upload-area.drag-over {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-md);
+        }
+
+        .upload-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: var(--space-md);
+        }
+
+        .upload-text {
+            font-size: 1.125rem;
+            color: var(--text-primary);
+            margin-bottom: var(--space-sm);
+        }
+
+        .upload-hint {
+            font-size: 0.875rem;
+            color: var(--color-primary);
+        }
+
+        .upload-formats {
+            margin-top: var(--space-md);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* === Audio Preview Grid === */
+        .audio-preview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-lg);
+            margin-bottom: var(--space-lg);
+        }
+
+        @media (max-width: 768px) {
+            .audio-preview-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .waveform-container {
+            background: var(--bg-card-hover);
+            border-radius: var(--radius-md);
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .waveform-canvas {
+            width: 100%;
+            height: 100px;
+            display: block;
+        }
+
+        .waveform-placeholder {
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-lg);
+            text-align: center;
+        }
+
+        .audio-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: var(--space-md);
+            padding: var(--space-sm) 0;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.875rem;
+        }
+
+        .audio-duration {
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .audio-meta {
+            color: var(--text-secondary);
+        }
+
+        .audio-controls {
+            margin-top: var(--space-md);
+        }
+
+        /* === Buttons === */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            padding: var(--space-md) var(--space-xl);
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--color-primary);
+            border: 2px solid var(--border-color);
+            width: 100%;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--color-primary);
+            background: var(--bg-card-hover);
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* === Slider === */
+        .slider-container {
+            width: 100%;
+            padding: var(--space-md) 0;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-sm);
+        }
+
+        .slider-label-text {
+            font-weight: 500;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .slider-value {
+            background: var(--gradient-primary);
+            color: white;
+            font-size: 0.875rem;
+            font-weight: 600;
+            padding: var(--space-xs) var(--space-md);
+            border-radius: var(--radius-sm);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+            margin: var(--space-md) 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            background: var(--gradient-primary);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            transition: transform var(--transition-fast);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        .slider-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .slider-db {
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .format-selector {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-md) 0;
+            border-top: 1px solid var(--border-color);
+            margin-top: var(--space-md);
+        }
+
+        .format-label {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        select {
+            padding: var(--space-sm) var(--space-md);
+            font-size: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            cursor: pointer;
+            outline: none;
+            transition: border-color var(--transition-fast);
+        }
+
+        select:hover,
+        select:focus {
+            border-color: var(--color-primary);
+        }
+
+        .preset-buttons {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding-top: var(--space-md);
+            border-top: 1px solid var(--border-color);
+            margin-top: var(--space-md);
+            flex-wrap: wrap;
+        }
+
+        .preset-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-right: var(--space-sm);
+        }
+
+        .preset-btn {
+            padding: var(--space-xs) var(--space-md);
+            font-size: 0.875rem;
+            font-weight: 500;
+            background: var(--bg-card-hover);
+            color: var(--color-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .preset-btn:hover {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        /* === Download Section === */
+        .download-section {
+            text-align: center;
+            padding: var(--space-lg) 0;
+        }
+
+        .download-btn {
+            padding: var(--space-lg) var(--space-2xl);
+            font-size: 1.125rem;
+            min-width: 280px;
+        }
+
+        .download-info {
+            margin-top: var(--space-md);
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .download-info strong {
+            color: var(--color-primary);
+        }
+
+        /* === Loading === */
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* === Footer === */
+        .footer {
+            padding: var(--space-lg);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        /* === Animations === */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn var(--transition-base) ease-out;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* === Responsive === */
+        @media (max-width: 480px) {
+            .header-title h1 {
+                font-size: 1.25rem;
+            }
+
+            .header-subtitle {
+                display: none;
+            }
+
+            .download-btn {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <div class="header-brand">
+                        <div class="header-logo">
+                            <svg viewBox="0 0 100 100" width="40" height="40">
+                                <defs>
+                                    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#00b4d8" />
+                                        <stop offset="100%" stop-color="#0096c7" />
+                                    </linearGradient>
+                                </defs>
+                                <circle cx="50" cy="50" r="45" fill="url(#logoGrad)" />
+                                <path d="M35 40 L35 60 L50 60 L65 75 L65 25 L50 40 Z" fill="white" />
+                                <path d="M72 35 Q85 50 72 65" stroke="white" stroke-width="4" fill="none"
+                                    stroke-linecap="round" />
+                                <path d="M78 28 Q95 50 78 72" stroke="white" stroke-width="4" fill="none"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+                        <div class="header-title">
+                            <h1>EZVolumeBooster</h1>
+                            <p class="header-subtitle">音量ブースター</p>
+                        </div>
+                    </div>
+                    <button class="theme-toggle" id="themeToggle" aria-label="テーマ切り替え">
+                        <svg id="moonIcon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                            <path
+                                d="M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 01-4.4 2.26 5.403 5.403 0 01-3.14-9.8c-.44-.06-.9-.1-1.36-.1z" />
+                        </svg>
+                        <svg id="sunIcon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"
+                            style="display:none;">
+                            <path
+                                d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0a.996.996 0 000-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 000-1.41.996.996 0 00-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 000-1.41.996.996 0 00-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <!-- File Upload -->
+                <div class="card fade-in">
+                    <div class="card-header">
+                        <span class="card-title">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                <path
+                                    d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" />
+                            </svg>
+                            ファイルアップロード
+                        </span>
+                    </div>
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="fileInput" accept=".mp3,.wav,.ogg,.flac,.m4a,.aac" style="display:none;">
+                        <div class="upload-icon">
+                            <svg viewBox="0 0 64 64" width="64" height="64">
+                                <defs>
+                                    <linearGradient id="dropGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#00b4d8" />
+                                        <stop offset="100%" stop-color="#0096c7" />
+                                    </linearGradient>
+                                </defs>
+                                <path
+                                    d="M32 4C18.745 4 8 14.745 8 28c0 9.175 5.233 17.117 12.857 21.028L32 60l11.143-10.972C50.767 45.117 56 37.175 56 28 56 14.745 45.255 4 32 4z"
+                                    fill="url(#dropGrad)" opacity="0.15" />
+                                <path
+                                    d="M32 8a4 4 0 00-4 4v16h-8a2 2 0 00-1.414 3.414l12 12a2 2 0 002.828 0l12-12A2 2 0 0044 28h-8V12a4 4 0 00-4-4z"
+                                    fill="url(#dropGrad)" />
+                            </svg>
+                        </div>
+                        <p class="upload-text">ここにファイルをドラッグ＆ドロップ</p>
+                        <p class="upload-hint">またはクリックして選択 / Ctrl+Vで貼り付け</p>
+                        <p class="upload-formats">対応形式: MP3, WAV, OGG, FLAC, M4A, AAC</p>
+                    </div>
+                </div>
+
+                <!-- Audio Preview -->
+                <div class="audio-preview-grid hidden" id="previewSection">
+                    <!-- Original Audio -->
+                    <div class="card fade-in">
+                        <div class="card-header">
+                            <span class="card-title">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                    <path
+                                        d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                                </svg>
+                                元の音声
+                            </span>
+                            <span class="card-badge">入力</span>
+                        </div>
+                        <div class="waveform-container">
+                            <canvas id="originalWaveform" class="waveform-canvas"></canvas>
+                        </div>
+                        <div class="audio-info">
+                            <span class="audio-duration" id="originalDuration">0:00</span>
+                            <span class="audio-meta" id="originalMeta">--</span>
+                        </div>
+                        <div class="audio-controls">
+                            <button class="btn btn-secondary" id="playOriginal" disabled>
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                                    <path d="M8 5v14l11-7z" />
+                                </svg>
+                                再生
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Processed Audio -->
+                    <div class="card fade-in">
+                        <div class="card-header">
+                            <span class="card-title">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                    <path
+                                        d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                                </svg>
+                                処理後
+                            </span>
+                            <span class="card-badge">処理済</span>
+                        </div>
+                        <div class="waveform-container">
+                            <canvas id="processedWaveform" class="waveform-canvas"></canvas>
+                        </div>
+                        <div class="audio-info">
+                            <span class="audio-duration" id="processedDuration">0:00</span>
+                            <span class="audio-meta" id="processedMeta">--</span>
+                        </div>
+                        <div class="audio-controls">
+                            <button class="btn btn-secondary" id="playProcessed" disabled>
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                                    <path d="M8 5v14l11-7z" />
+                                </svg>
+                                再生
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Volume Control -->
+                <div class="card fade-in hidden" id="controlSection">
+                    <div class="card-header">
+                        <span class="card-title">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                <path
+                                    d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z" />
+                            </svg>
+                            パラメータ設定
+                        </span>
+                    </div>
+
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span class="slider-label-text">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                                    <path
+                                        d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                                </svg>
+                                音量ブースト
+                            </span>
+                            <span class="slider-value" id="volumeValue">200%</span>
+                        </div>
+                        <input type="range" id="volumeSlider" min="0.1" max="5" step="0.1" value="2">
+                        <div class="slider-info">
+                            <span class="slider-min">10%</span>
+                            <span class="slider-db" id="decibelValue">+6.0 dB</span>
+                            <span class="slider-max">500%</span>
+                        </div>
+                    </div>
+
+                    <div class="format-selector">
+                        <label class="format-label">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                                <path
+                                    d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                            </svg>
+                            出力フォーマット
+                        </label>
+                        <select id="formatSelect">
+                            <option value="wav">WAV（高品質・無圧縮）</option>
+                            <option value="webm">WebM（高品質・圧縮）</option>
+                            <option value="mp3">MP3（互換性重視）</option>
+                        </select>
+                    </div>
+
+                    <div class="preset-buttons">
+                        <span class="preset-label">プリセット:</span>
+                        <button class="preset-btn" data-value="1.5">150%</button>
+                        <button class="preset-btn" data-value="2">200%</button>
+                        <button class="preset-btn" data-value="3">300%</button>
+                    </div>
+                </div>
+
+                <!-- Download Button -->
+                <div class="download-section hidden" id="downloadSection">
+                    <button class="btn btn-primary download-btn" id="downloadBtn" disabled>
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                        </svg>
+                        変換してダウンロード
+                    </button>
+                    <p class="download-info" id="downloadInfo"></p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>© 2024 EZVolumeBooster | Made with 💙</p>
+        </footer>
+    </div>
+
+    <script>
+        // ========================================
+        // EZVolumeBooster - Main JavaScript
+        // ========================================
+
+        // State
+        let audioContext = null;
+        let originalBuffer = null;
+        let processedBuffer = null;
+        let currentSource = null;
+        let isPlaying = false;
+        let playingOriginal = true;
+        let fileName = '';
+        let outputFormat = 'wav';
+        let volumeMultiplier = 2;
+
+        // DOM Elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewSection = document.getElementById('previewSection');
+        const controlSection = document.getElementById('controlSection');
+        const downloadSection = document.getElementById('downloadSection');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeValue = document.getElementById('volumeValue');
+        const decibelValue = document.getElementById('decibelValue');
+        const playOriginalBtn = document.getElementById('playOriginal');
+        const playProcessedBtn = document.getElementById('playProcessed');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadInfo = document.getElementById('downloadInfo');
+        const formatSelect = document.getElementById('formatSelect');
+        const themeToggle = document.getElementById('themeToggle');
+        const moonIcon = document.getElementById('moonIcon');
+        const sunIcon = document.getElementById('sunIcon');
+
+        // ========================================
+        // Theme Management
+        // ========================================
+        function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = saved || (prefersDark ? 'dark' : 'light');
+            setTheme(theme);
+        }
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            if (theme === 'dark') {
+                moonIcon.style.display = 'none';
+                sunIcon.style.display = 'block';
+            } else {
+                moonIcon.style.display = 'block';
+                sunIcon.style.display = 'none';
+            }
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            setTheme(current === 'dark' ? 'light' : 'dark');
+        }
+
+        themeToggle.addEventListener('click', toggleTheme);
+        initTheme();
+
+        // ========================================
+        // Audio Utilities
+        // ========================================
+        function getAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return audioContext;
+        }
+
+        function magnificationToDecibels(mag) {
+            if (mag <= 0) return -Infinity;
+            return 20 * Math.log10(mag);
+        }
+
+        function formatDecibels(db) {
+            if (!isFinite(db)) return '-∞ dB';
+            const sign = db >= 0 ? '+' : '';
+            return `${sign}${db.toFixed(1)} dB`;
+        }
+
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // ========================================
+        // File Upload
+        // ========================================
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Ctrl+V ペースト対応
+        document.addEventListener('paste', async (e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            for (const item of items) {
+                if (item.type.startsWith('audio/')) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    if (file) {
+                        handleFile(file);
+                    }
+                    return;
+                }
+            }
+
+            // ファイルとして貼り付けられた場合
+            const files = e.clipboardData?.files;
+            if (files && files.length > 0) {
+                const file = files[0];
+                if (file.type.startsWith('audio/') || /\.(mp3|wav|ogg|flac|m4a|aac)$/i.test(file.name)) {
+                    e.preventDefault();
+                    handleFile(file);
+                }
+            }
+        });
+
+        async function handleFile(file) {
+            stopPlayback();
+            fileName = file.name;
+
+            try {
+                const ctx = getAudioContext();
+                const arrayBuffer = await file.arrayBuffer();
+                originalBuffer = await ctx.decodeAudioData(arrayBuffer);
+
+                // Update UI
+                previewSection.classList.remove('hidden');
+                controlSection.classList.remove('hidden');
+                downloadSection.classList.remove('hidden');
+
+                // Update audio info
+                document.getElementById('originalDuration').textContent = formatDuration(originalBuffer.duration);
+                document.getElementById('processedDuration').textContent = formatDuration(originalBuffer.duration);
+
+                const metaText = `${(originalBuffer.sampleRate / 1000).toFixed(1)}kHz • ${originalBuffer.numberOfChannels === 1 ? 'モノラル' : 'ステレオ'}`;
+                document.getElementById('originalMeta').textContent = metaText;
+                document.getElementById('processedMeta').textContent = metaText;
+
+                // Enable buttons
+                playOriginalBtn.disabled = false;
+                playProcessedBtn.disabled = false;
+                downloadBtn.disabled = false;
+
+                // Update download info
+                updateDownloadInfo();
+
+                // Draw waveforms
+                drawWaveform('originalWaveform', originalBuffer, 1);
+                updateProcessedWaveform();
+
+            } catch (error) {
+                console.error('File decode error:', error);
+                alert('ファイルの読み込みに失敗しました。対応形式のファイルを選択してください。');
+            }
+        }
+
+        // 処理後波形を更新
+        function updateProcessedWaveform() {
+            if (!originalBuffer) return;
+            processedBuffer = adjustVolume(originalBuffer, volumeMultiplier);
+            drawWaveform('processedWaveform', processedBuffer, volumeMultiplier);
+        }
+
+        function updateDownloadInfo() {
+            const baseName = fileName.replace(/\.[^/.]+$/, '');
+            const ext = outputFormat === 'webm' ? 'webm' : outputFormat === 'ogg' ? 'ogg' : outputFormat === 'mp3' ? 'mp3' : 'wav';
+            downloadInfo.innerHTML = `出力ファイル: <strong>${baseName}_boosted.${ext}</strong>`;
+        }
+
+        // ========================================
+        // Waveform Drawing
+        // ========================================
+        function drawWaveform(canvasId, buffer, multiplier = 1) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas || !buffer) return;
+
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+
+            const width = rect.width;
+            const height = rect.height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const channelData = buffer.getChannelData(0);
+            const samples = channelData.length;
+            const samplesPerPixel = Math.floor(samples / width);
+
+            const style = getComputedStyle(document.documentElement);
+            const primaryColor = style.getPropertyValue('--color-primary').trim() || '#00b4d8';
+            const accentColor = style.getPropertyValue('--color-accent').trim() || '#0096c7';
+
+            // 処理後波形はより明るい色を使用
+            const isProcessed = canvasId === 'processedWaveform';
+            const gradient = ctx.createLinearGradient(0, 0, width, 0);
+            if (isProcessed && multiplier > 1) {
+                gradient.addColorStop(0, '#00e5ff');
+                gradient.addColorStop(1, '#00b4d8');
+            } else {
+                gradient.addColorStop(0, primaryColor);
+                gradient.addColorStop(1, accentColor);
+            }
+
+            ctx.fillStyle = gradient;
+            const centerY = height / 2;
+
+            for (let x = 0; x < width; x++) {
+                const start = x * samplesPerPixel;
+                const end = start + samplesPerPixel;
+
+                let min = 0, max = 0;
+                for (let i = start; i < end && i < samples; i++) {
+                    // 波形描画時に音量倍率を視覚的に反映
+                    const sample = channelData[i] * (isProcessed ? multiplier : 1);
+                    const clampedSample = Math.max(-1, Math.min(1, sample));
+                    if (clampedSample < min) min = clampedSample;
+                    if (clampedSample > max) max = clampedSample;
+                }
+
+                const minY = centerY + min * centerY * 0.9;
+                const maxY = centerY + max * centerY * 0.9;
+                ctx.fillRect(x, minY, 1, Math.max(1, maxY - minY));
+            }
+
+            // クリッピング警告を表示
+            if (isProcessed && multiplier > 1) {
+                let clippingCount = 0;
+                for (let i = 0; i < samples; i += 100) {
+                    const sample = Math.abs(channelData[i] * multiplier);
+                    if (sample > 1) clippingCount++;
+                }
+                if (clippingCount > samples / 1000) {
+                    ctx.fillStyle = 'rgba(255, 100, 100, 0.8)';
+                    ctx.font = '12px sans-serif';
+                    ctx.fillText('⚠ クリッピング発生', 5, 15);
+                }
+            }
+        }
+
+        // Redraw on resize
+        window.addEventListener('resize', () => {
+            if (originalBuffer) {
+                drawWaveform('originalWaveform', originalBuffer, 1);
+                updateProcessedWaveform();
+            }
+        });
+
+        // ========================================
+        // Audio Playback
+        // ========================================
+        function stopPlayback() {
+            if (currentSource) {
+                currentSource.stop();
+                currentSource.disconnect();
+                currentSource = null;
+            }
+            isPlaying = false;
+            updatePlayButtons();
+        }
+
+        function playAudio(useOriginalVolume) {
+            if (!originalBuffer) return;
+
+            stopPlayback();
+
+            const ctx = getAudioContext();
+            const source = ctx.createBufferSource();
+            const gainNode = ctx.createGain();
+
+            source.buffer = originalBuffer;
+            gainNode.gain.value = useOriginalVolume ? 1 : volumeMultiplier;
+
+            source.connect(gainNode);
+            gainNode.connect(ctx.destination);
+
+            source.onended = () => {
+                isPlaying = false;
+                updatePlayButtons();
+            };
+
+            source.start();
+            currentSource = source;
+            isPlaying = true;
+            playingOriginal = useOriginalVolume;
+            updatePlayButtons();
+        }
+
+        function updatePlayButtons() {
+            const playIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+            const stopIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+
+            if (isPlaying && playingOriginal) {
+                playOriginalBtn.innerHTML = stopIcon + ' 停止';
+            } else {
+                playOriginalBtn.innerHTML = playIcon + ' 再生';
+            }
+
+            if (isPlaying && !playingOriginal) {
+                playProcessedBtn.innerHTML = stopIcon + ' 停止';
+            } else {
+                playProcessedBtn.innerHTML = playIcon + ' 再生';
+            }
+        }
+
+        playOriginalBtn.addEventListener('click', () => {
+            if (isPlaying && playingOriginal) {
+                stopPlayback();
+            } else {
+                playAudio(true);
+            }
+        });
+
+        playProcessedBtn.addEventListener('click', () => {
+            if (isPlaying && !playingOriginal) {
+                stopPlayback();
+            } else {
+                playAudio(false);
+            }
+        });
+
+        // ========================================
+        // Volume Control
+        // ========================================
+        volumeSlider.addEventListener('input', (e) => {
+            volumeMultiplier = parseFloat(e.target.value);
+            updateVolumeDisplay();
+            updateProcessedWaveform();
+            updateDownloadInfo();
+        });
+
+        // フォーマット選択
+        formatSelect.addEventListener('change', (e) => {
+            outputFormat = e.target.value;
+            updateDownloadInfo();
+        });
+
+        function updateVolumeDisplay() {
+            volumeValue.textContent = `${Math.round(volumeMultiplier * 100)}%`;
+            decibelValue.textContent = formatDecibels(magnificationToDecibels(volumeMultiplier));
+        }
+
+        // Preset buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                volumeMultiplier = parseFloat(btn.dataset.value);
+                volumeSlider.value = volumeMultiplier;
+                updateVolumeDisplay();
+                updateProcessedWaveform();
+                updateDownloadInfo();
+            });
+        });
+
+        // ========================================
+        // WAV Encoding & Download
+        // ========================================
+        function adjustVolume(buffer, multiplier) {
+            const ctx = getAudioContext();
+            const newBuffer = ctx.createBuffer(
+                buffer.numberOfChannels,
+                buffer.length,
+                buffer.sampleRate
+            );
+
+            for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+                const inputData = buffer.getChannelData(channel);
+                const outputData = newBuffer.getChannelData(channel);
+                for (let i = 0; i < inputData.length; i++) {
+                    outputData[i] = Math.max(-1, Math.min(1, inputData[i] * multiplier));
+                }
+            }
+
+            return newBuffer;
+        }
+
+        function encodeToWav(buffer) {
+            const numChannels = buffer.numberOfChannels;
+            const sampleRate = buffer.sampleRate;
+            const bitDepth = 16;
+            const bytesPerSample = bitDepth / 8;
+            const blockAlign = numChannels * bytesPerSample;
+            const dataLength = buffer.length * blockAlign;
+            const arrayBuffer = new ArrayBuffer(44 + dataLength);
+            const view = new DataView(arrayBuffer);
+
+            function writeString(offset, str) {
+                for (let i = 0; i < str.length; i++) {
+                    view.setUint8(offset + i, str.charCodeAt(i));
+                }
+            }
+
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + dataLength, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * blockAlign, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitDepth, true);
+            writeString(36, 'data');
+            view.setUint32(40, dataLength, true);
+
+            const channels = [];
+            for (let i = 0; i < numChannels; i++) {
+                channels.push(buffer.getChannelData(i));
+            }
+
+            let offset = 44;
+            for (let i = 0; i < buffer.length; i++) {
+                for (let ch = 0; ch < numChannels; ch++) {
+                    const sample = Math.max(-1, Math.min(1, channels[ch][i]));
+                    const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+                    view.setInt16(offset, intSample, true);
+                    offset += 2;
+                }
+            }
+
+            return new Blob([arrayBuffer], { type: 'audio/wav' });
+        }
+
+        // MP3エンコード（lamejs使用）
+        function encodeToMp3(buffer) {
+            const numChannels = buffer.numberOfChannels;
+            const sampleRate = buffer.sampleRate;
+            const kbps = 128;
+
+            // lamejsエンコーダーを初期化
+            const mp3encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, kbps);
+
+            // Float32をInt16に変換
+            function floatTo16BitPCM(float32Array) {
+                const int16Array = new Int16Array(float32Array.length);
+                for (let i = 0; i < float32Array.length; i++) {
+                    const s = Math.max(-1, Math.min(1, float32Array[i]));
+                    int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                }
+                return int16Array;
+            }
+
+            const mp3Data = [];
+            const blockSize = 1152; // lamejsの推奨ブロックサイズ
+
+            if (numChannels === 1) {
+                // モノラル
+                const samples = floatTo16BitPCM(buffer.getChannelData(0));
+                for (let i = 0; i < samples.length; i += blockSize) {
+                    const sampleChunk = samples.subarray(i, i + blockSize);
+                    const mp3buf = mp3encoder.encodeBuffer(sampleChunk);
+                    if (mp3buf.length > 0) {
+                        mp3Data.push(mp3buf);
+                    }
+                }
+            } else {
+                // ステレオ
+                const leftChannel = floatTo16BitPCM(buffer.getChannelData(0));
+                const rightChannel = floatTo16BitPCM(buffer.getChannelData(1));
+
+                for (let i = 0; i < leftChannel.length; i += blockSize) {
+                    const leftChunk = leftChannel.subarray(i, i + blockSize);
+                    const rightChunk = rightChannel.subarray(i, i + blockSize);
+                    const mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+                    if (mp3buf.length > 0) {
+                        mp3Data.push(mp3buf);
+                    }
+                }
+            }
+
+            // エンコード終了
+            const finalBuf = mp3encoder.flush();
+            if (finalBuf.length > 0) {
+                mp3Data.push(finalBuf);
+            }
+
+            return new Blob(mp3Data, { type: 'audio/mp3' });
+        }
+
+        downloadBtn.addEventListener('click', async () => {
+            if (!originalBuffer) return;
+
+            downloadBtn.disabled = true;
+            downloadBtn.innerHTML = '<div class="loading-spinner"></div> 処理中...';
+
+            // Use setTimeout to allow UI update
+            setTimeout(async () => {
+                try {
+                    const buffer = adjustVolume(originalBuffer, volumeMultiplier);
+                    let blob;
+                    let ext;
+
+                    if (outputFormat === 'webm') {
+                        // MediaRecorder APIを使用してエンコード
+                        blob = await encodeWithMediaRecorder(buffer, outputFormat);
+                        ext = 'webm';
+                    } else if (outputFormat === 'mp3') {
+                        // lamejsを使用してMP3エンコード
+                        if (typeof lamejs !== 'undefined') {
+                            blob = encodeToMp3(buffer);
+                            ext = 'mp3';
+                        } else {
+                            console.warn('lamejs not loaded, using WAV instead');
+                            blob = encodeToWav(buffer);
+                            ext = 'wav';
+                        }
+                    } else {
+                        blob = encodeToWav(buffer);
+                        ext = 'wav';
+                    }
+
+                    const baseName = fileName.replace(/\.[^/.]+$/, '');
+                    const outputName = `${baseName}_boosted.${ext}`;
+
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = outputName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                } catch (error) {
+                    console.error('Download error:', error);
+                    alert('ダウンロードに失敗しました: ' + error.message);
+                } finally {
+                    downloadBtn.disabled = false;
+                    downloadBtn.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> 変換してダウンロード';
+                }
+            }, 100);
+        });
+
+
+        // MediaRecorder APIを使用してWebM/OGGエンコード
+        async function encodeWithMediaRecorder(buffer, format) {
+            return new Promise((resolve, reject) => {
+                try {
+                    // 新しいAudioContextを使用（リアルタイム再生が必要）
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+                    // MediaStreamDestinationを作成
+                    const dest = audioCtx.createMediaStreamDestination();
+
+                    // ソースノードを作成してバッファを設定
+                    const source = audioCtx.createBufferSource();
+                    source.buffer = buffer;
+                    source.connect(dest);
+
+                    // MIMEタイプを決定
+                    let mimeType;
+                    if (format === 'ogg') {
+                        // OGGのサポートを確認
+                        if (MediaRecorder.isTypeSupported('audio/ogg; codecs=opus')) {
+                            mimeType = 'audio/ogg; codecs=opus';
+                        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+                            mimeType = 'audio/ogg';
+                        } else if (MediaRecorder.isTypeSupported('audio/webm; codecs=opus')) {
+                            mimeType = 'audio/webm; codecs=opus';
+                        } else {
+                            mimeType = 'audio/webm';
+                        }
+                    } else {
+                        // WebM
+                        if (MediaRecorder.isTypeSupported('audio/webm; codecs=opus')) {
+                            mimeType = 'audio/webm; codecs=opus';
+                        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+                            mimeType = 'audio/webm';
+                        } else {
+                            reject(new Error('このブラウザはWebM形式に対応していません。WAVを使用してください。'));
+                            audioCtx.close();
+                            return;
+                        }
+                    }
+
+                    console.log('Using MIME type:', mimeType);
+
+                    // MediaRecorderを作成
+                    const recorder = new MediaRecorder(dest.stream, {
+                        mimeType: mimeType,
+                        audioBitsPerSecond: 128000
+                    });
+
+                    const chunks = [];
+
+                    recorder.ondataavailable = (e) => {
+                        if (e.data.size > 0) {
+                            chunks.push(e.data);
+                        }
+                    };
+
+                    recorder.onstop = () => {
+                        audioCtx.close();
+                        if (chunks.length === 0) {
+                            reject(new Error('録音データが空です。'));
+                            return;
+                        }
+                        const blob = new Blob(chunks, { type: mimeType });
+                        resolve(blob);
+                    };
+
+                    recorder.onerror = (e) => {
+                        audioCtx.close();
+                        reject(new Error('録音エラー: ' + (e.error?.message || '不明なエラー')));
+                    };
+
+                    // 録音開始
+                    recorder.start(100); // 100msごとにデータを取得
+                    source.start(0);
+
+                    // バッファの長さ分待ってから停止
+                    const duration = buffer.duration * 1000 + 500; // 500ms余裕を持たせる
+
+                    source.onended = () => {
+                        // 少し待ってから録音を停止
+                        setTimeout(() => {
+                            if (recorder.state === 'recording') {
+                                recorder.stop();
+                            }
+                        }, 200);
+                    };
+
+                    // タイムアウト処理
+                    setTimeout(() => {
+                        if (recorder.state === 'recording') {
+                            recorder.stop();
+                        }
+                    }, duration);
+
+                } catch (error) {
+                    reject(new Error('エンコード初期化エラー: ' + error.message));
+                }
+            });
+        }
+
+        // Initial volume display
+        updateVolumeDisplay();
+    </script>
+</body>
+
+</html>

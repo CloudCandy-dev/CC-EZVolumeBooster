@@ -1,0 +1,7 @@
+{
+    "language": "ja",
+    "volume_level": 0.1,
+    "after_format": ".wav",
+    "before_path": "\\before\\",
+    "after_path": "\\after\\"
+}
