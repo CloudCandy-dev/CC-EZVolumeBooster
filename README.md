@@ -49,9 +49,10 @@ MP3, WAV, OGG, FLAC, M4A, AAC
 
 ```
 CC-EZVolumeBooster/
-├── standalone.html    # メインアプリ（これだけで動作）
-├── old/               # 旧バージョン（Python/Flet）
-└── README.md
+├── index.html         # メインアプリ（これだけで動作）
+├── README.md          # このファイル
+├── .gitignore         # Git除外設定
+└── old/               # 旧バージョン（Python/Flet）
 ```
 
 ## 🎨 デザイン
