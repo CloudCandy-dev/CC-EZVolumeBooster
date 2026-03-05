@@ -17,7 +17,7 @@
 ## 🚀 使い方
 
 ### オンラインで使う
-`standalone.html` をウェブサーバーにアップロードするか、直接ブラウザで開くだけ！
+[このページで使えます！](https://cloudcandy-dev.github.io/CC-EZVolumeBooster/)
 
 ### ローカルで使う
 1. `standalone.html` をダブルクリック
