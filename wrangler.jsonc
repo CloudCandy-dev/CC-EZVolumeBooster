@@ -7,12 +7,12 @@
   "observability": {
     "enabled": true
   },
-  // public/index.html を /CC-EZVolumeBooster 配下で配信する
-  // （directory にリポジトリ直下を指定すると .git までアップロードされるため専用フォルダを使う）
+  // public フォルダ内の構成をそのまま URL のパスとして配信する
+  // （public/CC-EZVolumeBooster/index.html が /CC-EZVolumeBooster/ で返る）
+  // ※ assets.base_path はこのアカウントでは有効化されていないため使わない
   // ルートはダッシュボード側で追加済みのため、ここには書かない
   "assets": {
     "directory": "./public",
-    "base_path": "/CC-EZVolumeBooster",
     "not_found_handling": "single-page-application"
   }
 }
