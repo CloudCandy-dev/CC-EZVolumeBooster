@@ -11,6 +11,7 @@
   // （public/CC-EZVolumeBooster/index.html が /CC-EZVolumeBooster/ で返る）
   // ※ assets.base_path はこのアカウントでは有効化されていないため使わない
   // ルートはダッシュボード側で追加済みのため、ここには書かない
+  // Route: cloud-candy.cc/CC-EZVolumeBooster* -> この Worker
   "assets": {
     "directory": "./public",
     "not_found_handling": "single-page-application"
